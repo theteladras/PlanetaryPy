@@ -166,6 +166,40 @@ def reset_password(email: str):
     return jsonify(message="This E-mail is not registered."), 401
 
 
+@app.route('/planet_details/<int:planet_id>', methods=['GET'])
+def planet_details(planet_id: int):
+    planet = Planet.query.filter_by(planet_id=planet_id).first()
+    if planet:
+        result = planet_schema.dump(planet)
+        return jsonify(result)
+    return jsonify(message="The planet with the provided ID does not exist."), 404
+
+
+@app.route('/add_planet', methods=['POST'])
+def add_planet():
+    planet_name = request.json['planet_name']
+    test = Planet.query.filter_by(planet_name=planet_name).first()
+    if test:
+        return jsonify("There is already a planet registered bythat name"), 409
+    planet_type = request.json['planet_type']
+    home_star = request.json['home_start']
+    mass = float(request.json['mass'])
+    radius = float(request.json['radius'])
+    distance = float(request.json['distance'])
+
+    new_planet = Planet(
+        planet_name=planet_name,
+        planet_type=planet_type,
+        home_star=home_star,
+        mass=mass,
+        radius=radius,
+        distance=distance
+    )
+    db.session.add(new_planet)
+    db.session.commit()
+    return jsonify(Message="Planet added!"), 201
+
+
 print(">>>>>>>>>>>>>>>>>>>>>> ", db)
 
 # databse models
