@@ -2,15 +2,26 @@ from flask import Flask, jsonify, request
 from flask_sqlalchemy import SQLAlchemy
 from sqlalchemy import Column, Integer, String, Float
 from marshmallow import Schema, fields
+from flask_jwt_extended import JWTManager, jwt_required, create_access_token
+from flask_mail import Mail, Message
 import os
 
 app = Flask(__name__)
 basedir = os.path.abspath(os.path.dirname(__file__))
+app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///' + \
     os.path.join(basedir, 'planets.db')
-app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
+app.config['JWT_SECRET_KEY'] = 'this-is-a-secret'
+app.config['MAIL_SERVER'] = 'smtp.mailtrap.io'
+app.config['MAIL_PORT'] = 2525
+app.config.from_envvar('APP_SETTINGS')
+app.config['MAIL_USE_TLS'] = True
+app.config['MAIL_USE_SSL'] = False
+
 
 db = SQLAlchemy(app)
+jwt = JWTManager(app)
+mail = Mail(app)
 
 # start our database
 @app.cli.command('db_create')
@@ -109,6 +120,50 @@ def planets():
     planets_list = Planet.query.all()
     result = planets_schema.dump(planets_list)
     return {"planets": result}
+
+
+@app.route('/register', methods=['POST'])
+def register():
+    req_data = request.get_json()
+    email = req_data['email']
+    test = User.query.filter_by(email=email).first()
+    if test:
+        return jsonify(message="E-mail already in use.")
+    else:
+        first_name = req_data['first_name']
+        last_name = req_data['last_name']
+        password = req_data['password']
+        user = User(first_name=first_name, last_name=last_name,
+                    email=email, password=password)
+        db.session.add(user)
+        db.session.commit()
+        return jsonify(message="Successfully registered.")
+
+
+@app.route('/login', methods=['POST'])
+def login():
+    if request.is_json:
+        email = request.json['email']
+        password = request.json['password']
+    else:
+        email = request.form['email']
+        password = request.form['password']
+    test = User.query.filter_by(email=email, password=password).first()
+    if test:
+        access_token = create_access_token(identity=email)
+        return jsonify(message="Login success!", token=access_token)
+    return jsonify(message="Login failed."), 401
+
+
+@app.route('/reset_password/<string:email>', methods=['GET'])
+def reset_password(email: str):
+    user = User.query.filter_by(email=email).first()
+    if user:
+        msg = Message("Password is: " + user.password,
+                      sender="admin@planetary.com", recipients=[email])
+        mail.send(msg)
+        return jsonify(message="Password sent to: " + email)
+    return jsonify(message="This E-mail is not registered."), 401
 
 
 print(">>>>>>>>>>>>>>>>>>>>>> ", db)

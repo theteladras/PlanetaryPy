@@ -6,3 +6,4 @@ steps of progress:
   4 setup a virtual env in project - python -m virtualenv env
   5 activate the virtualenv in project - . ./env/Scripts/activate
   6 instal flaks - pip install flask
+  7 export environment variables - command line: export APP_SETTINGS=config.cfg
