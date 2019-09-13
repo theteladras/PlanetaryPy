@@ -176,6 +176,7 @@ def planet_details(planet_id: int):
 
 
 @app.route('/add_planet', methods=['POST'])
+@jwt_required
 def add_planet():
     planet_name = request.json['planet_name']
     test = Planet.query.filter_by(planet_name=planet_name).first()
@@ -198,6 +199,34 @@ def add_planet():
     db.session.add(new_planet)
     db.session.commit()
     return jsonify(Message="Planet added!"), 201
+
+
+@app.route('/update_planet', methods=['PUT'])
+@jwt_required
+def update_planet():
+    planet_id = int(request.json['planet_id'])
+    planet = Planet.query.filter_by(planet_id=planet_id).first()
+    if planet:
+        planet.planet_name = request.json['planet_name']
+        planet.planet_type = request.json['planet_type']
+        planet.home_star = request.json['home_star']
+        planet.mass = float(request.json['mass'])
+        planet.radius = float(request.json['radius'])
+        planet.distance = float(request.json['distance'])
+        db.session.commit()
+        return jsonify(message="Planet with the id: {} is updated!".format(planet_id)), 202
+    return jsonify(message="The planet with the provided ID does not exist."), 404
+
+
+@app.route('/remove_planet/<int:planet_id>', methods=['DELETE'])
+@jwt_required
+def remove_planet(planet_id: int):
+    planet = Planet.query.filter_by(planet_id=planet_id).first()
+    if planet:
+        db.session.delete(planet)
+        db.session.commit()
+        return jsonify(message="Planet {} has ben removed from the database.".format(planet.planet_name))
+    return jsonify(message="The planet with the provided ID ({}) does not exist.".format(planet_id)), 404
 
 
 print(">>>>>>>>>>>>>>>>>>>>>> ", db)
