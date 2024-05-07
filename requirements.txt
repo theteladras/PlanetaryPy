@@ -3,7 +3,7 @@ autopep8==1.4.4
 blinker==1.4
 Click==7.0
 colorama==0.4.1
-Flask==1.1.1
+Flask==2.2.5
 Flask-JWT-Extended==3.23.0
 Flask-Mail==0.9.1
 flask-marshmallow==0.10.1
